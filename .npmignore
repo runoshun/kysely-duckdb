@@ -1,0 +1,7 @@
+src/
+tsets/
+local_backup/
+node_modules/
+dprint.json
+jest.config.mjs
+tsconfig.json
