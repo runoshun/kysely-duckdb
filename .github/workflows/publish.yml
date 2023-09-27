@@ -1,6 +1,7 @@
 on: 
   release:
     types: [published]
+  workflow_dispatch: 
 
 jobs:
   publish-to-npm:
@@ -20,10 +21,10 @@ jobs:
       - name: generate packages
         run: pnpm run all
 
-      - name: publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      #- name: publish to npm
+      #  run: npm publish
+      #  env:
+      #    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - uses: actions/upload-pages-artifact@v2
         with:
