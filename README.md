@@ -1,6 +1,9 @@
 ## Kysely Dialect for DuckDB
+
+[![test](https://github.com/runoshun/kysely-duckdb/actions/workflows/test.yml/badge.svg)](https://github.com/runoshun/kysely-duckdb/actions/workflows/test.yml)
+
 This dialect allows you to use [Kysely](https://kysely.dev/) with [DuckDB](https://duckdb.org/).
-Please see following instructions and [API Reference]().
+Please see following instructions and [API Reference](https://runoshun.github.io/kysely-duckdb/).
 
 ### Installation
 ```bash
