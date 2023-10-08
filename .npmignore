@@ -1,5 +1,6 @@
+.github/
 src/
-tsets/
+tests/
 local_backup/
 node_modules/
 dprint.json
