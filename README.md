@@ -1,8 +1,11 @@
-## Kysely Dialect for DuckDB
+
+# Kysely Dialect for DuckDB Wasm
 
 [![test](https://github.com/runoshun/kysely-duckdb/actions/workflows/test.yml/badge.svg)](https://github.com/runoshun/kysely-duckdb/actions/workflows/test.yml)
 
 This dialect allows you to use [Kysely](https://kysely.dev/) with [DuckDB Wasm](https://duckdb.org/docs/api/wasm/overview.html).
+
+This is forked from [kysely-duckdb](https://github.com/runoshun/kysely-duckdb).
 
 ### Installation
 
