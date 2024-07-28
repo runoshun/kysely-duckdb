@@ -1,4 +1,5 @@
 import { sql } from "kysely";
+import { expect, test } from "vitest";
 import * as types from "../src/helper/datatypes";
 import { setupDb } from "./test_common";
 
@@ -31,8 +32,8 @@ test("select complex data types", async () => {
   expect(row.bs).toEqual("010101");
   expect(row.bl).toEqual(Buffer.from([0xAA]));
   expect(row.bool).toEqual(true);
-  expect(row.dt).toEqual(new Date(1992, 8, 20));
-  expect(row.ts).toEqual(new Date(1992, 8, 20, 11, 30, 0, 123));
+  expect(row.dt).toEqual(new Date(Date.UTC(1992, 8, 20)));
+  expect(row.ts).toEqual(new Date(Date.UTC(1992, 8, 20, 11, 30, 0, 123)));
   expect(row.enm).toEqual("sad");
   expect(row.delta).toEqual({ months: 12, days: 0, micros: 0 });
 });
@@ -46,11 +47,11 @@ test("select complex data types with where", async () => {
     .where("bs", "=", types.bit("010101"))
     .where("bl", "=", types.blob(Buffer.from([0xAA])))
     .where("bool", "=", true)
-    .where("dt", "=", types.date(new Date(1992, 8, 20)))
+    .where("dt", "=", types.date(new Date(Date.UTC(1992, 8, 20))))
     .where("int_list", "=", types.list([1, 2, 3]))
     .where("string_list", "=", types.list(["a", "b", "c"]))
     .where("st", "=", types.struct({ x: sql.val(1), y: sql.val("a") }))
-    .where("ts", "=", types.timestamp(new Date(1992, 8, 20, 11, 30, 0, 123)))
+    .where("ts", "=", types.timestamp(new Date(Date.UTC(1992, 8, 20, 11, 30, 0, 123))))
     .where("tsz", "=", types.timestamptz("1992-09-20 11:30:00.123+03:00"))
     .execute();
   expect(results.length).toBe(1);

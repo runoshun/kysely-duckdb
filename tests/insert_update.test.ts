@@ -1,4 +1,5 @@
 import { sql } from "kysely";
+import { expect, test } from "vitest";
 import * as types from "../src/helper/datatypes";
 import { setupDb } from "./test_common";
 

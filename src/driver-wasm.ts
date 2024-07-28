@@ -1,4 +1,3 @@
-/*
 import duckdb from "@duckdb/duckdb-wasm";
 import arrow from "apache-arrow";
 import { CompiledQuery } from "kysely";
@@ -83,10 +82,10 @@ class DuckDBConnection implements DatabaseConnection {
   }
 
   private formatToResult<O>(result: arrow.Table | arrow.RecordBatch, sql: string): QueryResult<O> {
-    const isSelect = result.schema.fields.length == 1
+    const isSelect = (result.schema.fields.length == 1
       && result.schema.fields[0].name == "Count"
-      && result.numRows == 1
-      && sql.toLowerCase().includes("select");
+      && result.numRows == 1)
+      || sql.toLowerCase().includes("select");
 
     if (isSelect) {
       return { rows: result.toArray() as O[] };
@@ -107,4 +106,3 @@ class DuckDBConnection implements DatabaseConnection {
     return this.#conn.close();
   }
 }
-*/

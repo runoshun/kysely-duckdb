@@ -1,14 +1,15 @@
 {
-  "name": "kysely-duckdb",
+  "name": "@coji/kysely-duckdb-wasm",
   "version": "0.1.0",
-  "description": "kysely dialect for duckdb",
+  "description": "kysely dialect for duckdb wasm",
   "exports": {
     "require": "./dist/index.js",
     "import": "./dist/index.mjs",
     "types": "./dist/index.d.ts"
   },
+  "type": "module",
   "scripts": {
-    "test": "jest",
+    "test": "vitest",
     "build": "rimraf ./dist && tsup src/index.ts --format cjs,esm --dts --sourcemap",
     "check": "tsc --noEmit",
     "docs": "typedoc src/index.ts",
@@ -17,24 +18,30 @@
   "keywords": [
     "kysely",
     "kysely-dialect",
-    "duckdb"
+    "duckdb",
+    "duckdb-wasm"
   ],
-  "author": "runoshun",
+  "author": "coji",
   "license": "MIT",
   "devDependencies": {
-    "@tsconfig/node18": "^18.2.2",
-    "@types/jest": "^29.5.5",
-    "@types/node": "^20.7.0",
-    "dprint": "^0.41.0",
+    "@types/node": "^20.14.12",
+    "dprint": "^0.47.2",
     "jest": "^29.7.0",
-    "rimraf": "^5.0.5",
-    "ts-jest": "^29.1.1",
-    "tsup": "^7.2.0",
-    "typedoc": "^0.25.1",
-    "typescript": "^5.2.2"
+    "rimraf": "^6.0.1",
+    "tsup": "^8.2.3",
+    "typedoc": "^0.26.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.4"
   },
   "peerDependencies": {
+    "@duckdb/duckdb-wasm": "*",
+    "apache-arrow": "*",
     "duckdb": "*",
     "kysely": "*"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "none"
   }
 }
