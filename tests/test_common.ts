@@ -1,6 +1,6 @@
 import * as duckdb from "duckdb";
-import { datatypes } from "../src/index";
 import type { DuckDBNodeDataTypes } from "../src/helper/datatypes";
+import { datatypes } from "../src/index";
 import { DuckDbDialect } from "../src/index";
 
 import type { ColumnType, Generated } from "kysely";
