@@ -1,6 +1,6 @@
 {
   "name": "@coji/kysely-duckdb-wasm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "kysely dialect for duckdb wasm",
   "exports": {
     "require": "./dist/index.cjs",
