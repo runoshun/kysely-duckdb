@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "description": "kysely dialect for duckdb wasm",
   "exports": {
-    "require": "./dist/index.js",
-    "import": "./dist/index.mjs",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.js",
     "types": "./dist/index.d.ts"
   },
   "type": "module",
