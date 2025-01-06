@@ -88,5 +88,10 @@ export const setupDb = async () => {
     ].join(", ") + ");",
   ));
 
+  // Additional test data for edge cases and potential error scenarios
+  await kysely.executeQuery(CompiledQuery.raw("INSERT INTO t1 VALUES (3, NULL);"));
+  await kysely.executeQuery(CompiledQuery.raw("INSERT INTO t1 VALUES (NULL, 4);"));
+  await kysely.executeQuery(CompiledQuery.raw("INSERT INTO t1 VALUES (5, 6);"));
+
   return kysely;
 };

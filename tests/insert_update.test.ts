@@ -62,3 +62,66 @@ test("update table", async () => {
   expect(res.length).toBe(1);
   expect(res[0].numUpdatedRows).toBe(BigInt(1));
 });
+
+// Additional tests for edge cases and potential error scenarios
+
+test("insert with missing fields", async () => {
+  const kysely = await setupDb();
+
+  const res = await kysely.insertInto("t1")
+    .values([{
+      a: 3,
+    }])
+    .execute();
+
+  expect(res.length).toBe(1);
+  expect(res[0].numInsertedOrUpdatedRows).toBe(BigInt(1));
+
+  const selectRes = await kysely.selectFrom("t1").selectAll().execute();
+  expect(selectRes.length).toBe(3);
+});
+
+test("insert with null values", async () => {
+  const kysely = await setupDb();
+
+  const res = await kysely.insertInto("t1")
+    .values([{
+      a: null,
+      b: 4,
+    }])
+    .execute();
+
+  expect(res.length).toBe(1);
+  expect(res[0].numInsertedOrUpdatedRows).toBe(BigInt(1));
+
+  const selectRes = await kysely.selectFrom("t1").selectAll().execute();
+  expect(selectRes.length).toBe(3);
+});
+
+test("update with non-existing condition", async () => {
+  const kysely = await setupDb();
+
+  const res = await kysely.updateTable("t1")
+    .set({
+      a: 20,
+    })
+    .where("a", "=", 100)
+    .execute();
+
+  expect(res.length).toBe(1);
+  expect(res[0].numUpdatedRows).toBe(BigInt(0));
+});
+
+test("update with null values", async () => {
+  const kysely = await setupDb();
+
+  const res = await kysely.updateTable("t1")
+    .set({
+      a: null,
+    })
+    .where("a", "=", 1)
+    .execute();
+
+  expect(res.length).toBe(1);
+  expect(res[0].numUpdatedRows).toBe(BigInt(1));
+});

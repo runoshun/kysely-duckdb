@@ -55,3 +55,64 @@ test("select complex data types with where", async () => {
     .execute();
   expect(results.length).toBe(1);
 });
+
+// Additional tests for edge cases and potential error scenarios
+
+test("select with non-existing condition", async () => {
+  const kysely = await setupDb();
+
+  const results = await kysely
+    .selectFrom("t1")
+    .selectAll()
+    .where("a", "=", 100)
+    .execute();
+  expect(results.length).toBe(0);
+});
+
+test("select with null values", async () => {
+  const kysely = await setupDb();
+
+  const results = await kysely
+    .selectFrom("t1")
+    .selectAll()
+    .where("a", "is", null)
+    .execute();
+  expect(results.length).toBe(0);
+});
+
+test("select with multiple conditions", async () => {
+  const kysely = await setupDb();
+
+  const results = await kysely
+    .selectFrom("t1")
+    .selectAll()
+    .where("a", "=", 1)
+    .where("b", "=", 2)
+    .execute();
+  expect(results.length).toBe(1);
+  expect(results[0]).toEqual({ a: 1, b: 2 });
+});
+
+test("select with order by", async () => {
+  const kysely = await setupDb();
+
+  const results = await kysely
+    .selectFrom("t1")
+    .selectAll()
+    .orderBy("a", "desc")
+    .execute();
+  expect(results.length).toBe(1);
+  expect(results[0]).toEqual({ a: 1, b: 2 });
+});
+
+test("select with limit", async () => {
+  const kysely = await setupDb();
+
+  const results = await kysely
+    .selectFrom("t1")
+    .selectAll()
+    .limit(1)
+    .execute();
+  expect(results.length).toBe(1);
+  expect(results[0]).toEqual({ a: 1, b: 2 });
+});
