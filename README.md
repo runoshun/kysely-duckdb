@@ -27,7 +27,8 @@ const duckdbDialect = new DuckDbDialect({
 });
 const kysely = new Kysely<DatabaseSchema>({ dialect: duckdbDialect });
 const res = await kysely.selectFrom("person").selectAll().execute();
-```
+
+// This is a temporary change for the PR.
 
 ### Configrations
 The configuration object of `DuckDbDialect` can contain the following properties:
