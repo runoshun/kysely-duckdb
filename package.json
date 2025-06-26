@@ -24,19 +24,19 @@
   "author": "coji",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.14.12",
-    "dprint": "^0.47.2",
+    "@types/node": "^24.0.4",
+    "dprint": "^0.50.0",
     "rimraf": "^6.0.1",
-    "tsup": "^8.2.3",
-    "typedoc": "^0.26.5",
-    "typescript": "^5.5.4",
-    "vitest": "^2.0.4"
+    "tsup": "^8.5.0",
+    "typedoc": "^0.28.5",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "@duckdb/duckdb-wasm": "*",
     "apache-arrow": "*",
-    "duckdb": "*",
-    "kysely": "*"
+    "duckdb": "^1",
+    "kysely": "^0.28"
   },
   "prettier": {
     "semi": true,
