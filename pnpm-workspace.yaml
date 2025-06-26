@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - dprint
+  - duckdb
+  - esbuild
