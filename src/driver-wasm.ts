@@ -94,7 +94,6 @@ class DuckDBConnection implements DatabaseConnection {
       const numAffectedRows = row == null ? undefined : BigInt(row["Count"]);
 
       return {
-        numUpdatedOrDeletedRows: numAffectedRows,
         numAffectedRows,
         insertId: undefined,
         rows: [],
