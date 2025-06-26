@@ -14,9 +14,6 @@ importers:
       apache-arrow:
         specifier: '*'
         version: 17.0.0
-      duckdb:
-        specifier: ^1
-        version: 1.3.1(encoding@0.1.13)
       kysely:
         specifier: ^0.28
         version: 0.28.2
@@ -27,6 +24,9 @@ importers:
       dprint:
         specifier: ^0.50.0
         version: 0.50.0
+      duckdb:
+        specifier: 1.3.1
+        version: 1.3.1(encoding@0.1.13)
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
