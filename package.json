@@ -1,6 +1,6 @@
 {
   "name": "@coji/kysely-duckdb-wasm",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "kysely dialect for duckdb wasm",
   "exports": {
     "require": "./dist/index.cjs",
@@ -36,7 +36,6 @@
   "peerDependencies": {
     "@duckdb/duckdb-wasm": "*",
     "apache-arrow": "*",
-    "duckdb": "^1",
     "kysely": "^0.28"
   },
   "prettier": {
