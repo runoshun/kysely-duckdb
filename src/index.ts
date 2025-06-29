@@ -5,17 +5,20 @@ import {
   type Driver,
   Kysely,
   type QueryCompiler,
-  type Simplify,
+  type Simplify
 } from "kysely";
 
 import { DuckDbAdapter } from "./adapter";
 import { DuckDbWasmDriver, type DuckDbWasmDriverConfig } from "./driver-wasm";
-import { DuckDbNodeDriver, type DuckDbNodeDriverConfig } from "./driver-node";
 import { DuckDbIntrospector } from "./introspector";
-import { DuckDbQueryCompiler, type DuckDbQueryCompilerConfigs } from "./query-compiler";
+import {
+  DuckDbQueryCompiler,
+  type DuckDbQueryCompilerConfigs
+} from "./query-compiler";
 
-export type DuckDbDialectConfig = Simplify<(DuckDbWasmDriverConfig | DuckDbNodeDriverConfig) & DuckDbQueryCompilerConfigs>;
-
+export type DuckDbDialectConfig = Simplify<
+  DuckDbWasmDriverConfig & DuckDbQueryCompilerConfigs
+>;
 /**
  * Kysely dialect for duckdb.
  *
@@ -60,8 +63,7 @@ export class DuckDbDialect implements Dialect {
   /**
    * @param config configulations for DuckDbDialect
    */
-  constructor(private readonly config: DuckDbDialectConfig) {
-  }
+  constructor(private readonly config: DuckDbDialectConfig) {}
   createQueryCompiler(): QueryCompiler {
     return new DuckDbQueryCompiler(this.config);
   }
@@ -69,17 +71,7 @@ export class DuckDbDialect implements Dialect {
     return new DuckDbIntrospector(db);
   }
   createDriver(): Driver {
-    // Check if the config contains a Node.js DuckDB database
-    if ('database' in this.config && this.config.database && 
-        typeof this.config.database === 'object' && 
-        'connect' in this.config.database && 
-        typeof this.config.database.connect === 'function') {
-      // This is a Node.js DuckDB database
-      return new DuckDbNodeDriver(this.config as DuckDbNodeDriverConfig & DuckDbQueryCompilerConfigs);
-    } else {
-      // This is a WASM DuckDB database
-      return new DuckDbWasmDriver(this.config as DuckDbWasmDriverConfig & DuckDbQueryCompilerConfigs);
-    }
+    return new DuckDbWasmDriver(this.config);
   }
   createAdapter(): DialectAdapter {
     return new DuckDbAdapter();
@@ -88,5 +80,4 @@ export class DuckDbDialect implements Dialect {
 
 export * as datatypes from "./helper/datatypes";
 export type { DuckDBNodeDataTypes } from "./helper/datatypes";
-export { DuckDbNodeDriver, type DuckDbNodeDriverConfig } from "./driver-node";
 export { DuckDbWasmDriver, type DuckDbWasmDriverConfig } from "./driver-wasm";
