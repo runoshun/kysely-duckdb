@@ -1,6 +1,6 @@
-import * as duckdb from "duckdb";
-import { datatypes } from "../src/index";
+import { DuckDBInstance } from "@duckdb/node-api";
 import type { DuckDBNodeDataTypes } from "../src/helper/datatypes";
+import { datatypes } from "../src/index";
 import { DuckDbDialect } from "../src/index";
 
 import type { ColumnType, Generated } from "kysely";
@@ -37,7 +37,7 @@ export interface PersonTable {
 }
 
 export const setupDb = async () => {
-  const db = new duckdb.Database(":memory:");
+  const db = await DuckDBInstance.create(":memory:");
   const duckdbDialect = new DuckDbDialect({
     database: db,
     tableMappings: {

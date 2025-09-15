@@ -1,23 +1,35 @@
-import duckdb from "duckdb";
+import {
+  DuckDBBitValue,
+  DuckDBBlobValue,
+  DuckDBConnection as NodeDuckDBConnection,
+  DuckDBDateValue,
+  DuckDBInstance,
+  DuckDBIntervalValue,
+  DuckDBListValue,
+  DuckDBMapValue,
+  DuckDBStructValue,
+  DuckDBTimestampTZValue,
+  DuckDBTimestampValue,
+} from "@duckdb/node-api";
 import { CompiledQuery } from "kysely";
 import type { DatabaseConnection, Driver, QueryResult } from "kysely";
 
 export interface DuckDbNodeDriverConfig {
   /**
-   * duckdb.Database instance or a function returns a Promise of duckdb.Database instance.
+   * DuckDBInstance instance or a function returns a Promise of DuckDBInstance instance.
    */
-  database: (() => Promise<duckdb.Database>) | duckdb.Database;
+  database: (() => Promise<DuckDBInstance>) | DuckDBInstance;
   /**
    * called when a connection is created.
-   * @param conection duckdb.Connection instance that is created.
+   * @param conection DuckDBConnection instance that is created.
    * @returns Promise<void>
    */
-  onCreateConnection?: (conection: duckdb.Connection) => Promise<void>;
+  onCreateConnection?: (conection: NodeDuckDBConnection) => Promise<void>;
 }
 
 export class DuckDbNodeDriver implements Driver {
   readonly #config: DuckDbNodeDriverConfig;
-  #db?: duckdb.Database;
+  #db?: DuckDBInstance;
 
   constructor(config: DuckDbNodeDriverConfig) {
     this.#config = Object.freeze({ ...config });
@@ -30,7 +42,7 @@ export class DuckDbNodeDriver implements Driver {
   }
 
   async acquireConnection(): Promise<DatabaseConnection> {
-    const conn = this.#db!.connect();
+    const conn = await this.#db!.connect();
     if (this.#config.onCreateConnection) {
       await this.#config.onCreateConnection(conn);
     }
@@ -54,61 +66,62 @@ export class DuckDbNodeDriver implements Driver {
   }
 
   async destroy(): Promise<void> {
-    await this.#db!.close();
+    this.#db!.closeSync();
   }
 }
 
 class DuckDBConnection implements DatabaseConnection {
-  readonly #conn: duckdb.Connection;
+  readonly #conn: NodeDuckDBConnection;
 
-  constructor(conn: duckdb.Connection) {
+  constructor(conn: NodeDuckDBConnection) {
     this.#conn = conn;
   }
 
   async executeQuery<O>(compiledQuery: CompiledQuery): Promise<QueryResult<O>> {
     const { sql, parameters } = compiledQuery;
-    const stmt = this.#conn.prepare(sql);
-
-    return new Promise((res, rej) => {
-      stmt.all(...parameters, (err, result) => {
-        if (err) {
-          return rej(err);
-        }
-        return res(this.formatToResult(result, sql));
-      });
-    });
+    const result = await this.#conn.run(sql, parameters as any);
+    const rows = (await result.getRowObjects()).map((r) => this.#convertRow(r));
+    return this.formatToResult(rows, sql);
   }
 
   async *streamQuery<R>(compiledQuery: CompiledQuery): AsyncIterableIterator<QueryResult<R>> {
     const { sql, parameters } = compiledQuery;
-    const iter = this.#conn.stream(sql, ...parameters);
+    const result = await this.#conn.stream(sql, parameters as any);
+    const columnNames = result.deduplicatedColumnNames();
     const self = this;
     const gen = async function*() {
       let isSelect: undefined | boolean = undefined;
-      for await (const result of iter) {
-        if (isSelect === undefined) {
-          isSelect = self.isSelect([result], sql);
+      while (true) {
+        const chunk = await result.fetchChunk();
+        if (chunk == null || chunk.rowCount === 0) {
+          break;
         }
-
-        yield self.formatToResult([result], sql, isSelect);
+        const rows = chunk.getRowObjects(columnNames).map((r) => self.#convertRow(r));
+        for (const row of rows) {
+          if (isSelect === undefined) {
+            isSelect = self.isSelect([row], sql);
+          }
+          yield self.formatToResult([row], sql, isSelect);
+        }
       }
     };
     return gen();
   }
 
-  private isSelect(result: duckdb.TableData, sql: string): boolean {
+  private isSelect(result: Record<string, unknown>[], sql: string): boolean {
     if (result.length === 0) {
       return sql.toLocaleLowerCase().includes("select");
     }
 
     // I can not detect correct query type easily..., use workaround in here.
+    const firstKey = Object.keys(result[0])[0];
     const isInsertedRows = Object.keys(result[0]).length == 1
-      && Object.keys(result[0])[0] == "Count"
+      && firstKey.toLowerCase() == "count"
       && result.length == 1;
     return !isInsertedRows;
   }
 
-  private formatToResult<O>(result: duckdb.TableData, sql: string, isSelect?: boolean): QueryResult<O> {
+  private formatToResult<O>(result: Record<string, unknown>[], sql: string, isSelect?: boolean): QueryResult<O> {
     if (isSelect === undefined) {
       isSelect = this.isSelect(result, sql);
     }
@@ -117,10 +130,11 @@ class DuckDBConnection implements DatabaseConnection {
       return { rows: result as O[] };
     } else {
       const row = result[0];
-      const numAffectedRows = row == null ? undefined : BigInt(row["Count"]);
+      const count = row == null ? undefined : (row as any)["Count"] ?? (row as any)["count"];
+      const numAffectedRows = count == null ? undefined : BigInt(count);
 
       return {
-        numUpdatedOrDeletedRows: numAffectedRows,
+        numChangedRows: numAffectedRows,
         numAffectedRows,
         insertId: undefined,
         rows: [],
@@ -129,5 +143,49 @@ class DuckDBConnection implements DatabaseConnection {
   }
 
   async disconnect(): Promise<void> {
+    this.#conn.closeSync();
+  }
+
+  #convertRow(row: Record<string, unknown>): Record<string, unknown> {
+    const obj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row)) {
+      obj[k] = this.#convertValue(v as any);
+    }
+    return obj;
+  }
+
+  #convertValue(value: any): any {
+    if (value == null) return value;
+    if (value instanceof DuckDBBitValue) return value.toString();
+    if (value instanceof DuckDBBlobValue) return Buffer.from(value.bytes);
+    if (value instanceof DuckDBDateValue) return new Date(value.toString());
+    if (value instanceof DuckDBTimestampValue) return new Date(value.toString());
+    if (value instanceof DuckDBTimestampTZValue) return new Date(value.toString());
+    if (value instanceof DuckDBIntervalValue) {
+      return { months: value.months, days: value.days, micros: Number(value.micros) };
+    }
+    if (value instanceof DuckDBListValue) {
+      return value.items.map((v) => this.#convertValue(v));
+    }
+    if (value instanceof DuckDBStructValue) {
+      const obj: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value.entries)) {
+        obj[k] = this.#convertValue(v);
+      }
+      return obj;
+    }
+    if (value instanceof DuckDBMapValue) {
+      const entries = value.entries
+        .map((e) => `${this.#convertValue(e.key)}=${this.#convertValue(e.value)}`)
+        .join(", ");
+      return `{${entries}}`;
+    }
+    if (value instanceof Uint8Array) {
+      return Buffer.from(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map((v) => this.#convertValue(v));
+    }
+    return value;
   }
 }

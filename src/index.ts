@@ -17,22 +17,22 @@ export type DuckDbDialectConfig = Simplify<DuckDbNodeDriverConfig & DuckDbQueryC
 
 /**
  * Kysely dialect for duckdb.
- * 
+ *
  * ## Quick Start and Usage Example
  * Please see also [Kysely Docs](https://kysely.dev/docs/intro) and [Duckdb Docs](https://duckdb.org/docs/)
- * 
+ *
  * ### Install
  * ```bash
- * $ npm install --save kysely duckdb kysely-duckdb
+ * $ npm install --save kysely @duckdb/node-api kysely-duckdb
  * ```
- * 
+ *
  * ### Basic Usage Example
  * reding data from json file.
  * ```ts
- * import * as duckdb from "duckdb";
+ * import { DuckDBInstance } from "@duckdb/node-api";
  * import { Kysely } from "kysely";
  * import { DuckDbDialect } from "kysely-duckdb"
- * 
+ *
  * interface PersonTable {
  *   first_name: string,
  *   gender: string,
@@ -41,8 +41,8 @@ export type DuckDbDialectConfig = Simplify<DuckDbNodeDriverConfig & DuckDbQueryC
  * interface DatabaseSchema {
  *   person: PersonTable,
  * };
- * 
- * const db = new duckdb.Database(":memory:");
+ *
+ * const db = await DuckDBInstance.create(":memory:");
  * const duckdbDialect = new DuckDbDialect({
  *   database: db,
  *   tableMappings: {
@@ -51,7 +51,7 @@ export type DuckDbDialectConfig = Simplify<DuckDbNodeDriverConfig & DuckDbQueryC
  *   },
  * });
  * const kysely = new Kysely<DatabaseSchema>({ dialect: duckdbDialect });
- * 
+ *
  * const res = await kysely.selectFrom("person").selectAll().execute();
  * ```
  */
