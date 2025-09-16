@@ -158,9 +158,31 @@ class DuckDBConnection implements DatabaseConnection {
     if (value == null) return value;
     if (value instanceof DuckDBBitValue) return value.toString();
     if (value instanceof DuckDBBlobValue) return Buffer.from(value.bytes);
-    if (value instanceof DuckDBDateValue) return new Date(value.toString());
-    if (value instanceof DuckDBTimestampValue) return new Date(value.toString());
-    if (value instanceof DuckDBTimestampTZValue) return new Date(value.toString());
+    if (value instanceof DuckDBDateValue) {
+      // DuckDB DATE represents a calendar date without time zone.
+      // Use DuckDB's built-in decomposition to avoid string parsing.
+      const { year, month, day } = value.toParts();
+      return new Date(year, month - 1, day);
+    }
+    if (value instanceof DuckDBTimestampValue) {
+      // DuckDB TIMESTAMP is timezone-naive. Use built-in parts and interpret as local time.
+      const { date, time } = value.toParts();
+      return new Date(
+        date.year,
+        date.month - 1,
+        date.day,
+        time.hour,
+        time.min,
+        time.sec,
+        Math.floor(time.micros / 1000),
+      );
+    }
+    if (value instanceof DuckDBTimestampTZValue) {
+      // DuckDB TIMESTAMPTZ has an associated time zone. The driver returns ISO
+      // strings with an offset; 'new Date(isoWithOffset)' yields the absolute
+      // UTC moment, which is the desired behavior for JS Date.
+      return new Date(value.toString());
+    }
     if (value instanceof DuckDBIntervalValue) {
       return { months: value.months, days: value.days, micros: Number(value.micros) };
     }

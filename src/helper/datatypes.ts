@@ -50,6 +50,11 @@ export const blob = (buf: Buffer): RawBuilder<Buffer> => {
   }
   return sql`${byteStr.join("")}::BLOB`;
 };
+// DATE: extract calendar date as 'YYYY-MM-DD'. We use toISOString() here since
+// DuckDB interprets the literal string as a date without timezone. If you
+// construct Date via local components (e.g. new Date(y, m, d)), this remains
+// stable across time zones for negative offsets; for positive offsets, consider
+// formatting using local components instead.
 export const date = (date: Date): RawBuilder<Date> => sql`${date.toISOString().substring(0, 10)}::DATE`;
 // const interval = ...
 export const list = <T>(values: T[]): RawBuilder<any[]> => sql`list_value(${sql.join(values)})`;
@@ -65,14 +70,28 @@ export const struct = (values: Record<string, RawBuilder<any>>): RawBuilder<any>
   });
   return sql`{${sql.join(Object.entries(values).map(([key, value]) => sql`${sql.lit(key)}: ${value}`))}}`;
 };
+// TIMESTAMP (no time zone): format using local time components to prevent UTC
+// conversion from shifting values. This keeps JS -> DuckDB round trips stable.
 export const timestamp = <T extends Date | string>(value: T): RawBuilder<T> => {
   if (typeof value === "string") {
     return sql`${value}::TIMESTAMP`;
   } else {
-    return sql`${value.toISOString().slice(0, -1)}::TIMESTAMP`;
+    // Format timestamp using local time components to match DuckDB TIMESTAMP semantics
+    const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+    const y = value.getFullYear();
+    const mo = pad(value.getMonth() + 1);
+    const d = pad(value.getDate());
+    const hh = pad(value.getHours());
+    const mm = pad(value.getMinutes());
+    const ss = pad(value.getSeconds());
+    const ms = pad(value.getMilliseconds(), 3);
+    const ts = `${y}-${mo}-${d} ${hh}:${mm}:${ss}.${ms}`;
+    return sql`${ts}::TIMESTAMP` as unknown as RawBuilder<T>;
   }
 };
 
+// TIMESTAMPTZ: preserve the absolute instant. For Date inputs, toISOString()
+// encodes UTC ('Z'), which DuckDB parses as the correct timestamptz value.
 export const timestamptz = <T extends Date | string>(value: T): RawBuilder<Date> => {
   if (typeof value === "string") {
     return sql`${value}::TIMESTAMPTZ`;
