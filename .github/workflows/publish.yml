@@ -39,5 +39,5 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: call pages deployment workflow
-        if: always()
+        if: ${{ success() }}
         uses: ./.github/workflows/pages.yml
