@@ -2,11 +2,6 @@ name: deploy-pages
 
 on:
   workflow_dispatch:
-    inputs:
-      ref:
-        required: false
-        default: main
-        description: "Git ref (branch or tag) to deploy"
   workflow_call:
   release:
     types: [published]
