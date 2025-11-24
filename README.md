@@ -6,18 +6,19 @@ This dialect allows you to use [Kysely](https://kysely.dev/) with [DuckDB](https
 Please see following instructions and [API Reference](https://runoshun.github.io/kysely-duckdb/).
 
 ### Installation
+
 ```bash
-$ npm install --save kysely duckdb kysely-duckdb
+$ npm install --save kysely @duckdb/node-api kysely-duckdb
 ```
 
 ### Usage
 
 ```ts
-import * as duckdb from "duckdb";
+import { DuckDBInstance } from "@duckdb/node-api";
 import { Kysely } from "kysely";
-import { DuckDbDialect } from "kysely-duckdb"
+import { DuckDbDialect } from "kysely-duckdb";
 
-const db = new duckdb.Database(":memory:");
+const db = await DuckDBInstance.create(":memory:");
 const duckdbDialect = new DuckDbDialect({
   database: db,
   tableMappings: {
@@ -30,10 +31,11 @@ const res = await kysely.selectFrom("person").selectAll().execute();
 ```
 
 ### Configrations
+
 The configuration object of `DuckDbDialect` can contain the following properties:
 
-* `database`: A `duckdb.Database` instance or a function that returns a `Promise` of a `duckdb.Database` instance.
-* `tableMappings`: A mapping of table names in Kysely to DuckDB table expressions. This is useful if you want to use DuckDB's external data sources, such as JSON files or CSV files.
+- `database`: A `DuckDBInstance` instance or a function that returns a `Promise` of a `DuckDBInstance` instance.
+- `tableMappings`: A mapping of table names in Kysely to DuckDB table expressions. This is useful if you want to use DuckDB's external data sources, such as JSON files or CSV files.
 
 ### DuckDB DataTypes Supports (Experimental Feature)
 
@@ -41,7 +43,7 @@ DuckDB supports various data types like arrays, structs, blobs and more.
 Kysely has not built in supports for these types, but it can handle almost
 of these using [raw SQL](https://kysely.dev/docs/recipes/raw-sql) feature.
 
-This package includes some shallow helper for these types. 
+This package includes some shallow helper for these types.
 
 ```ts
 import type { DuckDBNodeDataTypes } from "kysely-duckdb";
