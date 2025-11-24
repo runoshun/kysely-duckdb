@@ -18,29 +18,26 @@ jobs:
           version: 8
           run_install: true
 
+      - name: check if version already published
+        id: check-published
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VER" version > /dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "version $VER already on npm, will skip publish"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: generate packages
         run: pnpm run all
 
       - name: publish to npm
+        if: steps.check-published.outputs.published == 'false'
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
-
-  deploy-pages:
-    needs: publish-to-npm
-    runs-on: ubuntu-22.04 
-    permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - uses: actions/deploy-pages@v2
-        id: deployment
+      - name: call pages deployment workflow
+        if: always()
+        uses: ./.github/workflows/pages.yml
