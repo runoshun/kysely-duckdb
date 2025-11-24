@@ -10,16 +10,22 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 jobs:
   deploy-pages:
     runs-on: ubuntu-22.04
+    concurrency:
+      group: pages-${{ github.ref }}
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
 
       - uses: actions/setup-node@v3
         with:
@@ -38,5 +44,5 @@ jobs:
         with:
           path: docs
 
-      - uses: actions/deploy-pages@v2
+      - uses: actions/deploy-pages@v4
         id: deployment
