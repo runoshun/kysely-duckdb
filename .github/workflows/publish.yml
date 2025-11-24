@@ -26,7 +26,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - uses: actions/upload-pages-artifact@v2
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
