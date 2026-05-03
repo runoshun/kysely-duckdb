@@ -1,4 +1,4 @@
-import { DefaultQueryCompiler, TableNode, TupleNode, ValueListNode, WhereNode } from "kysely";
+import { DefaultQueryCompiler, TableNode } from "kysely";
 
 const ID_WRAP_REGEX = /"/g;
 
@@ -13,26 +13,35 @@ export interface DuckDbQueryCompilerConfigs {
    *
    * This mappings is used to replace table name string to duckdb table expression.
    *
+   * Keys can be plain table names or schema-qualified names (e.g., "schema.table").
+   * - Plain table names match only when no schema is specified in the query.
+   * - Schema-qualified keys match when using `.withSchema("schema").selectFrom("table")`.
+   * - When a schema is specified but not found in any mapping key, the table is
+   *   resolved normally (useful for attached databases like Postgres via ATTACH).
+   *
    * @example
    * ```ts
    * const dialect = new DuckDbDialect({
    *  database: db,
    *  tableMappings: {
-   *    person: 'read_json_object("s3://my-bucket/person.json?s3_access_key_id=key&s3_secret_access_key=secret")'
+   *    // Matches: db.selectFrom("person")
+   *    person: 'read_json_object("s3://my-bucket/person.json")',
+   *    // Matches: db.withSchema("archive").selectFrom("person")
+   *    "archive.person": 'read_parquet("s3://my-bucket/archive/person.parquet")',
    *  }
    * });
    *
-   * const db = new Kysely<{
-   *   person: { first_name: string, last_name: string }, // 'person' is defined in tableMappings
-   *   pet: { name: string, species: 'cat' | 'dog' },     // 'pet' is *not* defined in tableMappings
-   * >({ dialect });
+   * const db = new Kysely<Database>({ dialect });
    *
+   * // Uses the "person" mapping (reads from JSON)
    * await db.selectFrom("person").selectAll().execute();
-   * // => Executed query is: `SELECT * FROM read_json_object("s3://my-bucket/person.json?s3_access_key_id=key&s3_secret_access_key=secret");`
-   * ```
    *
-   * await db.selectFrom("pet").selectAll().execute();
-   * // => Executed query is: `SELECT * FROM pet;`
+   * // Uses the "archive.person" mapping (reads from Parquet)
+   * await db.withSchema("archive").selectFrom("person").selectAll().execute();
+   *
+   * // No mapping for "neon.person", queries the attached database directly
+   * await db.withSchema("neon").selectFrom("person").selectAll().execute();
+   * ```
    */
   tableMappings: {
     [tableName: string]: string;
@@ -60,11 +69,11 @@ export class DuckDbQueryCompiler extends DefaultQueryCompiler {
   }
 
   protected override getLeftIdentifierWrapper(): string {
-    return "\"";
+    return '"';
   }
 
   protected override getRightIdentifierWrapper(): string {
-    return "\"";
+    return '"';
   }
 
   protected override getAutoIncrement(): string {
@@ -72,14 +81,32 @@ export class DuckDbQueryCompiler extends DefaultQueryCompiler {
   }
 
   protected override sanitizeIdentifier(identifier: string): string {
-    return identifier.replace(ID_WRAP_REGEX, "\"\"");
+    return identifier.replace(ID_WRAP_REGEX, '""');
   }
 
   protected visitTable(node: TableNode): void {
-    if (Object.hasOwn(this.#configs.tableMappings, node.table.identifier.name)) {
-      this.append(this.#configs.tableMappings[node.table.identifier.name]);
-    } else {
+    const mappings = this.#configs.tableMappings;
+    const table = node.table.identifier.name;
+    const schema = node.table.schema?.name;
+
+    if (schema) {
+      // Schema is specified, try schema-qualified key first
+      const key = `${schema}.${table}`;
+      if (Object.hasOwn(mappings, key)) {
+        this.append(mappings[key]);
+        return;
+      }
+
+      // Schema specified but no matching schema-qualified key found,
+      // skip tableMappings and use normal table resolution
       super.visitTable(node);
+    } else {
+      // No schema specified, use plain table name mapping
+      if (Object.hasOwn(mappings, table)) {
+        this.append(mappings[table]);
+      } else {
+        super.visitTable(node);
+      }
     }
   }
 }

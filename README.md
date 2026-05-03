@@ -24,18 +24,35 @@ const duckdbDialect = new DuckDbDialect({
   tableMappings: {
     person:
       `read_json('./person.json', columns={"first_name": "STRING", "gender": "STRING", "last_name": "STRING"})`,
+    // Schema-qualified keys work with .withSchema()
+    "archive.person": `read_parquet('s3://bucket/archive/person.parquet')`,
   },
 });
 const kysely = new Kysely<DatabaseSchema>({ dialect: duckdbDialect });
 const res = await kysely.selectFrom("person").selectAll().execute();
+// Uses "archive.person" mapping
+const archived = await kysely.withSchema("archive").selectFrom("person")
+  .selectAll().execute();
 ```
 
 ### Configrations
 
-The configuration object of `DuckDbDialect` can contain the following properties:
+The configuration object of `DuckDbDialect` can contain the following
+properties:
 
-- `database`: A `DuckDBInstance` instance or a function that returns a `Promise` of a `DuckDBInstance` instance.
-- `tableMappings`: A mapping of table names in Kysely to DuckDB table expressions. This is useful if you want to use DuckDB's external data sources, such as JSON files or CSV files.
+- `database`: A `DuckDBInstance` instance or a function that returns a `Promise`
+  of a `DuckDBInstance` instance.
+- `tableMappings`: A mapping of table names in Kysely to DuckDB table
+  expressions. This is useful if you want to use DuckDB's external data sources,
+  such as JSON files or CSV files. Keys can be schema-qualified (e.g.,
+  `"schema.table"`) to match `.withSchema()` queries. When a schema is specified
+  but not found in mappings, the query bypasses mappings entirely (useful for
+  attached databases).
+
+When a schema is specified via `.withSchema()` but no matching schema-qualified
+key exists in `tableMappings`, the query bypasses table mappings entirely. This
+allows you to query attached databases directly while still using mappings for
+local data sources.
 
 ### DuckDB DataTypes Supports (Experimental Feature)
 

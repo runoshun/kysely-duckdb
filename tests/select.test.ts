@@ -55,3 +55,22 @@ test("select complex data types with where", async () => {
     .execute();
   expect(results.length).toBe(1);
 });
+
+test("tableMappings should respect .withSchema()", async () => {
+  const kysely = await setupDb();
+
+  // Create a schema and a table with the same name as one in tableMappings
+  await sql`CREATE SCHEMA other_schema`.execute(kysely);
+  await sql`CREATE TABLE other_schema.person (first_name VARCHAR)`.execute(
+    kysely,
+  );
+  await sql`INSERT INTO other_schema.person VALUES ('bar')`.execute(kysely);
+
+  // Without schema, should use tableMappings (reads from JSON file)
+  const resultsFromMapping = await kysely.selectFrom("person").select(["first_name"]).execute();
+  expect(resultsFromMapping).toEqual([{ first_name: "foo" }]);
+
+  // With schema, should bypass tableMappings and read from the schema table
+  const resultsFromSchema = await kysely.withSchema("other_schema").selectFrom("person").select(["first_name"]).execute();
+  expect(resultsFromSchema).toEqual([{ first_name: "bar" }]);
+});
