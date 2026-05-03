@@ -16,7 +16,7 @@
     "./wasm-node": {
       "types": "./dist/wasm-node.d.ts",
       "require": "./dist/wasm-node.js",
-      "import": "./dist/wasm-node.js"
+      "import": "./dist/wasm-node.mjs"
     }
   },
   "scripts": {

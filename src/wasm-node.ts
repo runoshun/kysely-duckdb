@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -8,6 +9,8 @@ import {
   type Logger,
 } from "@duckdb/duckdb-wasm";
 
+const nodeRequire = createRequire(join(process.cwd(), "package.json"));
+
 export interface CreateDuckDbWasmDatabaseConfig {
   bundles?: DuckDBBundles;
   logger?: Logger;
@@ -16,7 +19,7 @@ export interface CreateDuckDbWasmDatabaseConfig {
 export async function createDuckDbWasmDatabase(
   config: CreateDuckDbWasmDatabaseConfig = {},
 ): Promise<AsyncDuckDB> {
-  const duckdbDist = dirname(require.resolve("@duckdb/duckdb-wasm/dist/duckdb-node.cjs"));
+  const duckdbDist = dirname(nodeRequire.resolve("@duckdb/duckdb-wasm/dist/duckdb-node.cjs"));
   const bundle = await selectBundle(config.bundles ?? createNodeBundles(duckdbDist));
   const worker = await createNodeWorker(bundle.mainWorker);
   const db = new AsyncDuckDB(config.logger ?? new VoidLogger(), worker);

@@ -16,6 +16,7 @@ interface WasmDatabase {
     bl: Buffer;
     dt: Date;
     ts: Date;
+    tsz: Date;
   };
   seeded: {
     id: number;
@@ -160,7 +161,8 @@ test("wasm dialect converts nested Arrow values and binary data", async () => {
         st STRUCT(x INT, y VARCHAR),
         bl BLOB,
         dt DATE,
-        ts TIMESTAMP
+        ts TIMESTAMP,
+        tsz TIMESTAMPTZ
       );
     `.execute(kysely);
     await sql`
@@ -170,7 +172,8 @@ test("wasm dialect converts nested Arrow values and binary data", async () => {
         {'x': 10, 'y': 'nested'},
         '\\xAA\\xBB',
         '1992-09-20',
-        '1992-09-20 11:30:00.123'
+        '1992-09-20 11:30:00.123',
+        '1992-09-20 11:30:00.123+03:00'
       );
     `.execute(kysely);
 
@@ -185,6 +188,7 @@ test("wasm dialect converts nested Arrow values and binary data", async () => {
       bl: Buffer.from([0xAA, 0xBB]),
       dt: new Date(1992, 8, 20),
       ts: new Date(1992, 8, 20, 11, 30, 0, 123),
+      tsz: new Date("1992-09-20T08:30:00.123Z"),
     });
   } finally {
     await kysely.destroy();
