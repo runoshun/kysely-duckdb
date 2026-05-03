@@ -110,7 +110,7 @@ class DuckDBWasmConnection implements DatabaseConnection {
 
   #formatToResult<O>(result: ArrowResult, isMutationQuery: boolean): QueryResult<O> {
     if (!isMutationQuery) {
-      return { rows: result.toArray().map((row) => this.#convertValue(row)) as O[] };
+      return { rows: result.toArray().map((row) => this.#convertRow(row, result.schema.fields)) as O[] };
     }
 
     const row = result.get(0) as Record<string, unknown> | null | undefined;
@@ -129,10 +129,25 @@ class DuckDBWasmConnection implements DatabaseConnection {
     await this.#conn.close();
   }
 
-  #convertValue(value: unknown): unknown {
+  #convertRow(value: unknown, fields: ReadonlyArray<ArrowField>): unknown {
+    if (value == null || typeof value !== "object") return this.#convertValue(value);
+
+    const fieldByName = new Map(fields.map((field) => [field.name, field]));
+    const obj: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      obj[key] = this.#convertValue(item, fieldByName.get(key));
+    }
+    return obj;
+  }
+
+  #convertValue(value: unknown, field?: ArrowField): unknown {
     if (value == null) return value;
     if (value instanceof Date) return value;
     if (value instanceof Uint8Array) return Buffer.from(value);
+    if (this.#isArrowVector(value)) {
+      return Array.from(value.toArray()).map((item) => this.#convertValue(item));
+    }
+    if (field && this.#isTemporalField(field)) return this.#convertTemporalValue(value, field.type);
     if (Array.isArray(value)) return value.map((item) => this.#convertValue(item));
     if (typeof value === "object") {
       const entries = Object.entries(value);
@@ -145,6 +160,43 @@ class DuckDBWasmConnection implements DatabaseConnection {
     }
     return value;
   }
+
+  #isArrowVector(value: unknown): value is { toArray(): unknown[] } {
+    return typeof value === "object"
+      && value !== null
+      && "toArray" in value
+      && typeof (value as { toArray?: unknown }).toArray === "function";
+  }
+
+  #isTemporalField(field: ArrowField): boolean {
+    return field.type.typeId === ArrowTypeId.Date || field.type.typeId === ArrowTypeId.Timestamp;
+  }
+
+  #convertTemporalValue(value: unknown, type: ArrowType): unknown {
+    if (typeof value !== "number" && typeof value !== "bigint") return value;
+
+    const milliseconds = typeof value === "bigint" ? Number(value) : value;
+    if (type.typeId === ArrowTypeId.Timestamp && type.timezone) {
+      return new Date(milliseconds);
+    }
+
+    const utc = new Date(milliseconds);
+    return new Date(
+      utc.getUTCFullYear(),
+      utc.getUTCMonth(),
+      utc.getUTCDate(),
+      type.typeId === ArrowTypeId.Timestamp ? utc.getUTCHours() : 0,
+      type.typeId === ArrowTypeId.Timestamp ? utc.getUTCMinutes() : 0,
+      type.typeId === ArrowTypeId.Timestamp ? utc.getUTCSeconds() : 0,
+      type.typeId === ArrowTypeId.Timestamp ? utc.getUTCMilliseconds() : 0,
+    );
+  }
+
+}
+
+const enum ArrowTypeId {
+  Date = 8,
+  Timestamp = 10,
 }
 
 interface ArrowResult {
@@ -152,8 +204,19 @@ interface ArrowResult {
   readonly schema: {
     readonly fields: ReadonlyArray<{
       readonly name: string;
+      readonly type: ArrowType;
     }>;
   };
   get(index: number): unknown;
   toArray(): unknown[];
+}
+
+interface ArrowField {
+  readonly name: string;
+  readonly type: ArrowType;
+}
+
+interface ArrowType {
+  readonly typeId: number;
+  readonly timezone?: string | null;
 }
