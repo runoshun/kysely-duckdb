@@ -101,11 +101,11 @@ class DuckDBConnection implements DatabaseConnection {
           if (isSelect === undefined) {
             isSelect = self.isSelect([row], sql);
           }
-          yield self.formatToResult([row], sql, isSelect);
+          yield self.formatToResult<R>([row], sql, isSelect);
         }
       }
     };
-    return gen();
+    yield* gen();
   }
 
   private isSelect(result: Record<string, unknown>[], sql: string): boolean {
