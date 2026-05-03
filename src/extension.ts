@@ -3,6 +3,8 @@ import { CompiledQuery, Kysely } from "kysely";
 
 type CompiledQuerySchema<T> = T extends SelectQueryBuilder<any, any, infer O> ? Simplify<O> : never;
 
+const ID_WRAP_REGEX = /"/g;
+
 /**
  * @alpha
  * Kysely extension methods.
@@ -35,7 +37,7 @@ export class KyselyDuckDbExtension<DB> extends Kysely<DB> {
     for (const tableName of tableNames) {
       const table = tables[tableName].compile();
       const query = CompiledQuery.raw(
-        `CREATE TABLE ${String(tableName)} AS (${table.sql})`,
+        `CREATE TABLE ${quoteTableName(String(tableName))} AS (${table.sql})`,
         [...table.parameters],
       );
       await this.executeQuery(query);
@@ -43,4 +45,16 @@ export class KyselyDuckDbExtension<DB> extends Kysely<DB> {
 
     return this as Kysely<DB & { [K in keyof T]: CompiledQuerySchema<T[K]>; }>;
   }
+}
+
+function quoteTableName(tableName: string): string {
+  return tableName.split(".").map(quoteIdentifier).join(".");
+}
+
+function quoteIdentifier(identifier: string): string {
+  if (identifier === "") {
+    throw new Error("DuckDB CTAS table names cannot contain empty identifier parts.");
+  }
+
+  return `"${identifier.replace(ID_WRAP_REGEX, "\"\"")}"`;
 }

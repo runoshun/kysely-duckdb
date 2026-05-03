@@ -77,3 +77,5 @@ export class DuckDbDialect implements Dialect {
 
 export * as datatypes from "./helper/datatypes";
 export type { DuckDBNodeDataTypes } from "./helper/datatypes";
+export type { DuckDbNodeDriverConfig } from "./driver-node";
+export type { DuckDbQueryCompilerConfigs } from "./query-compiler";
