@@ -62,3 +62,14 @@ test("update table", async () => {
   expect(res.length).toBe(1);
   expect(res[0].numUpdatedRows).toBe(BigInt(1));
 });
+
+test("delete reports affected row count", async () => {
+  const kysely = await setupDb();
+
+  const res = await kysely.deleteFrom("t1")
+    .where("a", "=", 1)
+    .execute();
+
+  expect(res.length).toBe(1);
+  expect(res[0].numDeletedRows).toBe(BigInt(1));
+});
