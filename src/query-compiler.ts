@@ -43,7 +43,7 @@ export interface DuckDbQueryCompilerConfigs {
    * await db.withSchema("neon").selectFrom("person").selectAll().execute();
    * ```
    */
-  tableMappings: {
+  tableMappings?: {
     [tableName: string]: string;
   };
 }
@@ -53,7 +53,7 @@ export class DuckDbQueryCompiler extends DefaultQueryCompiler {
 
   constructor(configs: DuckDbQueryCompilerConfigs) {
     super();
-    this.#configs = configs;
+    this.#configs = { tableMappings: {}, ...configs };
   }
 
   protected override getCurrentParameterPlaceholder() {
@@ -85,7 +85,7 @@ export class DuckDbQueryCompiler extends DefaultQueryCompiler {
   }
 
   protected visitTable(node: TableNode): void {
-    const mappings = this.#configs.tableMappings;
+    const mappings = this.#configs.tableMappings ?? {};
     const table = node.table.identifier.name;
     const schema = node.table.schema?.name;
 

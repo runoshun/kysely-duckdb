@@ -54,7 +54,6 @@ export class DuckDbIntrospector implements DatabaseIntrospector {
         .where("columns.TABLE_NAME", "!=", DEFAULT_MIGRATION_LOCK_TABLE);
     }
 
-    console.log(query.compile());
     const rawColumns = await query.execute();
     return this.#parseTableMetadata(rawColumns);
   }
@@ -68,7 +67,6 @@ export class DuckDbIntrospector implements DatabaseIntrospector {
   }
 
   #parseTableMetadata(columns: RawColumnMetadata[]): TableMetadata[] {
-    console.log(columns);
     return columns.reduce<TableMetadata[]>((tables, it) => {
       let table = tables.find((tbl) => tbl.name === it.table_name);
 
