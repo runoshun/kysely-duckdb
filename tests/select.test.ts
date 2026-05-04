@@ -33,6 +33,7 @@ test("select complex data types", async () => {
   expect(row.bool).toEqual(true);
   expect(row.dt).toEqual(new Date(1992, 8, 20));
   expect(row.ts).toEqual(new Date(1992, 8, 20, 11, 30, 0, 123));
+  expect(row.tsz).toEqual(new Date("1992-09-20T08:30:00.123Z"));
   expect(row.enm).toEqual("sad");
   expect(row.delta).toEqual({ months: 12, days: 0, micros: 0 });
 });
@@ -73,4 +74,72 @@ test("tableMappings should respect .withSchema()", async () => {
   // With schema, should bypass tableMappings and read from the schema table
   const resultsFromSchema = await kysely.withSchema("other_schema").selectFrom("person").select(["first_name"]).execute();
   expect(resultsFromSchema).toEqual([{ first_name: "bar" }]);
+});
+
+test("timestamptz insert, select, and where preserve absolute instants", async () => {
+  const kysely = await setupDb();
+  const instant = new Date("1992-09-20T08:30:00.123Z");
+
+  await sql`CREATE TABLE tsz_cases (id INTEGER, tsz TIMESTAMPTZ);`.execute(kysely);
+  await sql`
+    INSERT INTO tsz_cases VALUES
+      (1, ${types.timestamptz("1992-09-20 11:30:00.123+03:00")}),
+      (2, ${types.timestamptz(instant)});
+  `.execute(kysely);
+
+  const selected = await sql<{ id: number; tsz: Date; }>`
+    SELECT id, tsz FROM tsz_cases ORDER BY id;
+  `.execute(kysely);
+  expect(selected.rows).toEqual([
+    { id: 1, tsz: instant },
+    { id: 2, tsz: instant },
+  ]);
+
+  const matchingOffset = await sql<{ id: number; }>`
+    SELECT id FROM tsz_cases
+    WHERE tsz = ${types.timestamptz("1992-09-20 05:30:00.123-03:00")}
+    ORDER BY id;
+  `.execute(kysely);
+  expect(matchingOffset.rows).toEqual([{ id: 1 }, { id: 2 }]);
+
+  const matchingDate = await sql<{ id: number; }>`
+    SELECT id FROM tsz_cases
+    WHERE tsz = ${types.timestamptz(instant)}
+    ORDER BY id;
+  `.execute(kysely);
+  expect(matchingDate.rows).toEqual([{ id: 1 }, { id: 2 }]);
+});
+
+test("round-trips date and timestamp helpers from Date values", async () => {
+  const kysely = await setupDb();
+  const dt = new Date(1992, 8, 20);
+  const ts = new Date(1992, 8, 20, 11, 30, 0, 123);
+  const tsz = new Date("1992-09-20T08:30:00.123Z");
+
+  await kysely.insertInto("t2")
+    .values({
+      int_list: types.list([9, 8, 7]),
+      string_list: types.list(["x", "y", "z"]),
+      m: types.map([["k", "v"]]),
+      st: types.struct({ x: sql.val(9), y: sql.val("z") }),
+      bs: types.bit("111000"),
+      bl: types.blob(Buffer.from([0xDD])),
+      bool: false,
+      dt: types.date(dt),
+      ts: types.timestamp(ts),
+      tsz: types.timestamptz(tsz),
+      enm: "ok",
+      delta: sql`INTERVAL 2 DAY`,
+    })
+    .execute();
+
+  const rows = await kysely.selectFrom("t2")
+    .select(["dt", "ts", "tsz"])
+    .where("bs", "=", types.bit("111000"))
+    .where("dt", "=", types.date(dt))
+    .where("ts", "=", types.timestamp(ts))
+    .where("tsz", "=", types.timestamptz(tsz))
+    .execute();
+
+  expect(rows).toEqual([{ dt, ts, tsz }]);
 });

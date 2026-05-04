@@ -50,12 +50,15 @@ export const blob = (buf: Buffer): RawBuilder<Buffer> => {
   }
   return sql`${byteStr.join("")}::BLOB`;
 };
-// DATE: extract calendar date as 'YYYY-MM-DD'. We use toISOString() here since
-// DuckDB interprets the literal string as a date without timezone. If you
-// construct Date via local components (e.g. new Date(y, m, d)), this remains
-// stable across time zones for negative offsets; for positive offsets, consider
-// formatting using local components instead.
-export const date = (date: Date): RawBuilder<Date> => sql`${date.toISOString().substring(0, 10)}::DATE`;
+// DATE is timezone-naive, so format from local calendar fields instead of UTC.
+export const date = (date: Date): RawBuilder<Date> => {
+  const formattedDate = [
+    String(date.getFullYear()).padStart(4, "0"),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-");
+  return sql`${formattedDate}::DATE`;
+};
 // const interval = ...
 export const list = <T>(values: T[]): RawBuilder<any[]> => sql`list_value(${sql.join(values)})`;
 export const map = <K, V>(values: [K, V][]): RawBuilder<any> => {
@@ -77,7 +80,6 @@ export const timestamp = <T extends Date | string>(value: T): RawBuilder<T> => {
     return sql`${value}::TIMESTAMP`;
   } else {
     // Format timestamp using local time components to match DuckDB TIMESTAMP semantics
-    const pad = (n: number, len = 2) => String(n).padStart(len, "0");
     const y = value.getFullYear();
     const mo = pad(value.getMonth() + 1);
     const d = pad(value.getDate());
@@ -99,3 +101,7 @@ export const timestamptz = <T extends Date | string>(value: T): RawBuilder<Date>
     return sql`${value.toISOString()}::TIMESTAMPTZ`;
   }
 };
+
+function pad(n: number, len = 2): string {
+  return String(n).padStart(len, "0");
+}
