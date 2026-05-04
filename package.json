@@ -31,6 +31,10 @@
     "kysely-dialect",
     "duckdb"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/runoshun/kysely-duckdb"
+  },
   "author": "runoshun",
   "license": "MIT",
   "devDependencies": {
