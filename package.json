@@ -1,6 +1,6 @@
 {
   "name": "kysely-duckdb",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "kysely dialect for duckdb",
   "exports": {
     ".": {
