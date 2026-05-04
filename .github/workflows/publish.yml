@@ -41,7 +41,3 @@ jobs:
       - name: publish to npm
         if: steps.check-published.outputs.published == 'false'
         run: npm publish
-
-      - name: call pages deployment workflow
-        if: ${{ success() }}
-        uses: ./.github/workflows/pages.yml
